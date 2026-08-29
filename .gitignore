@@ -1,0 +1,9 @@
+.env
+uv.lock
+
+.idea
+*.iws
+*.iml
+*.ipr
+
+.vscode/
