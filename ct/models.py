@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped,mapped_column,relationship
-# from ct import db
 from extentions import db
 
 
