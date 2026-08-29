@@ -1,8 +1,12 @@
 from flask import request,jsonify,Blueprint
 from ct.vo import PostResponse,ApiResponse
-from ct.constants import SUCCESS_CODE,EMPTY_ERROR,FORMAT_ERROR,ERROR_CODE
+from ct.constants import SUCCESS_CODE
 
-from ct.service import get_all_posts, upload_to_cf
+from ct.services import (get_all_posts,
+                         upload_to_cf,
+                         publish_post,
+                         registry_user,
+                         login_user)
 
 
 bp = Blueprint('main',__name__)
@@ -19,5 +23,19 @@ def posts():
 @bp.post('/upload')
 def upload():
     resp,status_code = upload_to_cf(request)
+    return jsonify(resp.model_dump()),status_code
 
+@bp.post('/publish')
+def publish():
+    resp,status_code = publish_post(request)
+    return jsonify(resp.model_dump()),status_code
+
+@bp.post('/registry')
+def registry():
+    resp,status_code = registry_user(request)
+    return jsonify(resp.model_dump()),status_code
+
+@bp.post('/login')
+def login():
+    resp,status_code = login_user(request)
     return jsonify(resp.model_dump()),status_code

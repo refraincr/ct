@@ -1,11 +1,18 @@
 from ct.models import User,Post
-from ct.extentions import db
 from datetime import datetime
 from flask.wrappers import Request
 import uuid
-from ct.extentions import r2_client,BUCKET_NAME,PUBLIC_DOMAIN
+from ct.extensions import r2_client,BUCKET_NAME,PUBLIC_DOMAIN,db
 from ct.constants import SUCCESS_CODE,EMPTY_ERROR,FORMAT_ERROR,ERROR_CODE
+
+from ct.utils import generate_password_hash,check_password
+
+# 响应结构
 from ct.vo import PostResponse,ApiResponse
+
+# 入参
+from ct.bo import PostPublishBO,RegistryFormBO,LoginBO
+
 
 posts_data = [
     {
@@ -83,3 +90,95 @@ def upload_to_cf(req: Request) -> tuple[ApiResponse,int]:
             message=str(e)
         )
         return resp,500
+
+def publish_post(req: Request) -> tuple[ApiResponse,int]:
+    # 入参验证
+    try:
+        postPublish = PostPublishBO(**req.get_json())
+    except ValueError as e:
+        resp = ApiResponse(
+            code=ERROR_CODE,
+            message=str(e)
+        )
+        return resp, 443
+
+    p = Post(**postPublish.model_dump())
+
+    try:
+        with db.session.begin():
+            db.session.add(p)
+    except Exception as e:
+        print(f'保存失败: {str(e)}')
+
+    resp = ApiResponse(
+        code=SUCCESS_CODE,
+        data=None
+    )
+    return resp,200
+
+def registry_user(req: Request)  -> tuple[ApiResponse,int]:
+    # 验证参数
+    try:
+        registry_form = RegistryFormBO(**req.get_json())
+    except ValueError as e:
+        resp = ApiResponse(
+            code=ERROR_CODE,
+            message=str(e)
+        )
+        return resp,443
+
+    u = User(
+        username = registry_form.username,
+        email = registry_form.email,
+        password = generate_password_hash(registry_form.password),
+        avatar = registry_form.avatar
+    )
+
+    try:
+        with db.session.begin():
+            db.session.add(u)
+    except Exception as e:
+        print(f'保存失败[{str(e)}]')
+
+    resp = ApiResponse(
+        code=SUCCESS_CODE,
+        message='用户创建成功'
+    )
+    return resp,200
+
+def login_user(req: Request)  -> tuple[ApiResponse,int]:
+    try:
+        login_bo = LoginBO(**req.get_json())
+    except ValueError as e:
+        resp = ApiResponse(
+            code=ERROR_CODE,
+            message=str(e)
+        )
+
+        return resp,443
+
+    if User.get_user_by_username(login_bo.username):
+        user = User.get_user_by_username(login_bo.username)
+        is_valid = check_password(login_bo.password,user.password)
+
+        if is_valid:
+            resp = ApiResponse(
+                code=SUCCESS_CODE,
+                message='登录成功'
+            )
+
+            return resp, 200
+        else:
+            resp = ApiResponse(
+                code=ERROR_CODE,
+                message='登录失败,用户名（邮箱）或密码错误'
+            )
+
+            return resp, 400
+
+    resp = ApiResponse(
+        code=EMPTY_ERROR,
+        message='用户信息不存在'
+    )
+
+    return resp, 400

@@ -1,13 +1,13 @@
-from extentions import db,migrate
+from ct.extensions import db,migrate
 from dotenv import load_dotenv
 import os
 from flask import Flask
-from config import config_map
+from ct.config import config_map
 from flask_cors import CORS
 
 load_dotenv()
 
-def create_app(config_name: str)->Flask:
+def create_app(config_name: str | None = None)->Flask:
     config_name = config_name or os.getenv('config_name','development')
 
     app = Flask(__name__)
