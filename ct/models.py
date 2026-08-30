@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped,mapped_column,relationship
 from ct.extensions import db
-from typing import Optional
+import bcrypt
 
 
 class User(db.Model):
@@ -26,6 +26,23 @@ class User(db.Model):
     def get_user_by_email(cls,email: str) -> 'User | None':
         stmt = db.select(cls).where(cls.email == email)
         return db.session.execute(stmt).scalar_one_or_none()
+
+    @classmethod
+    def get_user_by_id(cls,user_id: int) -> 'User | None':
+        return db.session.get(User,user_id)
+
+    @classmethod
+    def generate_password_hash(cls,password: str) -> str:
+        password_byte = password.encode('utf-8')
+        salt = bcrypt.gensalt()
+        password_byte_hash = bcrypt.hashpw(password_byte, salt)
+        return password_byte_hash.decode('utf-8')
+
+    @classmethod
+    def check_password(cls, password: str, saved_password: str) -> bool:
+        """ 前面的输入的密码，后面的是保存的密码 """
+        return bcrypt.checkpw(password.encode('utf-8'), saved_password.encode('utf-8'))
+
 
 
 class Post(db.Model):

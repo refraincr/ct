@@ -1,4 +1,4 @@
-from ct.extensions import db,migrate
+from ct.extensions import db,migrate,jwt
 from dotenv import load_dotenv
 import os
 from flask import Flask
@@ -16,8 +16,10 @@ def create_app(config_name: str | None = None)->Flask:
     # 加载配置
     app.config.from_object(config_map[config_name])
 
+    jwt.init_app(app)
     db.init_app(app)
     migrate.init_app(app,db)
+
 
     # 导入模型，确保它们被注册到 db.Model 的 metadata 里
     # Flask-Migrate生成迁移脚本时才能检测到这些
@@ -36,5 +38,6 @@ if __name__ == '__main__':
     app.run(
         app.config['HOST'],
         app.config['PORT'],
-        app.config['DEBUG']
+        app.config['DEBUG'],
+        use_reloader = app.config['USE_RELOADER'],
     )

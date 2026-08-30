@@ -6,6 +6,9 @@ class Config:
     # 不需要额外监控对象的变化
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # 重载
+    USE_RELOADER = False
+
     HOST = 'localhost'
 
     PORT = 5001

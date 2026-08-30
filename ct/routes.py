@@ -1,41 +1,44 @@
-from flask import request,jsonify,Blueprint
-from ct.vo import PostResponse,ApiResponse
-from ct.constants import SUCCESS_CODE
+from flask import request,Blueprint
 
 from ct.services import (get_all_posts,
                          upload_to_cf,
                          publish_post,
                          registry_user,
-                         login_user)
+                         login_user,
+                         refresh_token,
+                         test_token)
+
+from flask_jwt_extended import jwt_required
 
 
 bp = Blueprint('main',__name__)
 
 @bp.get('/posts')
 def posts():
-    api_resp = ApiResponse[list[PostResponse]](
-        code=SUCCESS_CODE,
-        data=get_all_posts()
-    )
-    return jsonify(api_resp.model_dump()), 200
-
+    return get_all_posts()
 
 @bp.post('/upload')
 def upload():
-    resp,status_code = upload_to_cf(request)
-    return jsonify(resp.model_dump()),status_code
+    return upload_to_cf(request)
 
 @bp.post('/publish')
 def publish():
-    resp,status_code = publish_post(request)
-    return jsonify(resp.model_dump()),status_code
+    return publish_post(request)
 
 @bp.post('/registry')
 def registry():
-    resp,status_code = registry_user(request)
-    return jsonify(resp.model_dump()),status_code
+    return registry_user(request)
 
 @bp.post('/login')
 def login():
-    resp,status_code = login_user(request)
-    return jsonify(resp.model_dump()),status_code
+    return login_user(request)
+
+@bp.post('/refresh')
+@jwt_required(refresh=True)  # 只接受 refresh token
+def refresh():
+    return refresh_token()
+
+@bp.get('/me')
+@jwt_required()  # 默认只接受 access token
+def me():
+    return test_token()

@@ -5,14 +5,13 @@ import uuid
 from ct.extensions import r2_client,BUCKET_NAME,PUBLIC_DOMAIN,db
 from ct.constants import SUCCESS_CODE,EMPTY_ERROR,FORMAT_ERROR,ERROR_CODE
 
-from ct.utils import generate_password_hash,check_password
-
 # 响应结构
 from ct.vo import PostResponse,ApiResponse
 
 # 入参
 from ct.bo import PostPublishBO,RegistryFormBO,LoginBO
 
+from flask_jwt_extended import get_jwt_identity,create_access_token,create_refresh_token
 
 posts_data = [
     {
@@ -29,7 +28,7 @@ posts_data = [
     }
 ]
 
-def get_all_posts()->list[PostResponse]:
+def get_all_posts()->tuple[ApiResponse,int]:
     mock_data = []
     for i in range(0,len(posts_data)):
         mock_data.append(PostResponse(
@@ -38,26 +37,26 @@ def get_all_posts()->list[PostResponse]:
             user_id=posts_data[i]['user_id'],
             create_at=posts_data[i]['create_at']
         ))
-    return mock_data
+    return ApiResponse(code=SUCCESS_CODE,data=mock_data).model_dump(),200
 
 def upload_to_cf(req: Request) -> tuple[ApiResponse,int]:
     """ (上传返回的路径信息, message, 状态码) """
-    if 'file' not in req.files:
+    if 'avatar' not in req.files:
         resp = ApiResponse(
             code=FORMAT_ERROR,
             data=None,
             message='未提供文件'
         )
-        return resp, 400
+        return resp.model_dump(), 200
     
-    file = req.files['file']
+    file = req.files['avatar']
     if file.filename == '':
         resp = ApiResponse(
             code=EMPTY_ERROR,
             data=None,
             message='未选择文件'
         )
-        return resp, 400
+        return resp.model_dump(), 200
 
     ext = file.filename.rsplit('.',1)[-1] if '.' in file.filename else 'png'
     filename = f'images/{uuid.uuid4().hex}.{ext}'
@@ -81,7 +80,7 @@ def upload_to_cf(req: Request) -> tuple[ApiResponse,int]:
             },
             message='上传成功'
         )
-        return resp,200
+        return resp.model_dump(),200
 
     except Exception as e:
         resp = ApiResponse(
@@ -89,7 +88,7 @@ def upload_to_cf(req: Request) -> tuple[ApiResponse,int]:
             data=None,
             message=str(e)
         )
-        return resp,500
+        return resp.model_dump(),500
 
 def publish_post(req: Request) -> tuple[ApiResponse,int]:
     # 入参验证
@@ -100,7 +99,7 @@ def publish_post(req: Request) -> tuple[ApiResponse,int]:
             code=ERROR_CODE,
             message=str(e)
         )
-        return resp, 443
+        return resp.model_dump(), 443
 
     p = Post(**postPublish.model_dump())
 
@@ -114,9 +113,9 @@ def publish_post(req: Request) -> tuple[ApiResponse,int]:
         code=SUCCESS_CODE,
         data=None
     )
-    return resp,200
+    return resp.model_dump(),200
 
-def registry_user(req: Request)  -> tuple[ApiResponse,int]:
+def registry_user(req: Request) -> tuple[ApiResponse,int]:
     # 验证参数
     try:
         registry_form = RegistryFormBO(**req.get_json())
@@ -125,12 +124,12 @@ def registry_user(req: Request)  -> tuple[ApiResponse,int]:
             code=ERROR_CODE,
             message=str(e)
         )
-        return resp,443
+        return resp.model_dump(),443
 
     u = User(
         username = registry_form.username,
         email = registry_form.email,
-        password = generate_password_hash(registry_form.password),
+        password = User.generate_password_hash(registry_form.password),
         avatar = registry_form.avatar
     )
 
@@ -138,15 +137,19 @@ def registry_user(req: Request)  -> tuple[ApiResponse,int]:
         with db.session.begin():
             db.session.add(u)
     except Exception as e:
-        print(f'保存失败[{str(e)}]')
+        resp = ApiResponse(
+            code=ERROR_CODE,
+            message='用户保存失败'
+        )
+        return resp.model_dump(), 200
 
     resp = ApiResponse(
         code=SUCCESS_CODE,
         message='用户创建成功'
     )
-    return resp,200
+    return resp.model_dump(),200
 
-def login_user(req: Request)  -> tuple[ApiResponse,int]:
+def login_user(req: Request) -> tuple[ApiResponse,int]:
     try:
         login_bo = LoginBO(**req.get_json())
     except ValueError as e:
@@ -155,30 +158,39 @@ def login_user(req: Request)  -> tuple[ApiResponse,int]:
             message=str(e)
         )
 
-        return resp,443
+        return resp.model_dump(),443
 
     if User.get_user_by_username(login_bo.username):
         user = User.get_user_by_username(login_bo.username)
-        is_valid = check_password(login_bo.password,user.password)
+        is_valid = User.check_password(login_bo.password,user.password)
 
         if is_valid:
-            resp = ApiResponse(
-                code=SUCCESS_CODE,
-                message='登录成功'
-            )
-
-            return resp, 200
+            _refresh_token = create_refresh_token(user)
+            _access_token = create_access_token(user)
+            return ApiResponse(code=SUCCESS_CODE,
+                               message='登录成功',
+                               data={
+                                   'refresh_token': _refresh_token,
+                                   'access_token': _access_token
+                               }).model_dump(), 200
         else:
-            resp = ApiResponse(
-                code=ERROR_CODE,
-                message='登录失败,用户名（邮箱）或密码错误'
-            )
 
-            return resp, 400
+            return ApiResponse(code=ERROR_CODE,message='登录失败,用户名（邮箱）或密码错误').model_dump(), 200
 
     resp = ApiResponse(
         code=EMPTY_ERROR,
         message='用户信息不存在'
     )
 
-    return resp, 400
+    return resp.model_dump(), 200
+
+def refresh_token() -> tuple[ApiResponse,int]:
+    user_id = int(get_jwt_identity())
+    from ct.models import User
+    user = User.get_user_by_id(user_id)
+    access_token = create_access_token(user)
+
+    return ApiResponse(code=SUCCESS_CODE,data={'access_token':access_token}).model_dump(),200
+
+def test_token() -> tuple[ApiResponse,int]:
+    return ApiResponse(code=SUCCESS_CODE).model_dump(),200
