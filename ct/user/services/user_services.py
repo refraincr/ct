@@ -1,37 +1,19 @@
-from ct.models import User,Post
-from sqlalchemy import select
-from flask.wrappers import Request
-import uuid
-from ct.extensions import r2_client,BUCKET_NAME,PUBLIC_DOMAIN,db
-from ct.constants import SUCCESS_CODE,EMPTY_ERROR,FORMAT_ERROR,ERROR_CODE
 import io
+import uuid
 
-# 响应结构
-from ct.vo import PostResponse,ApiResponse
+from flask.wrappers import Request
+from flask_jwt_extended import get_jwt_identity, create_access_token, create_refresh_token
 
 # 入参
-from ct.bo import PostPublishBO,RegistryFormBO,LoginBO
+from ct.bo import RegistryFormBO, LoginBO
+from ct.constants import SUCCESS_CODE, EMPTY_ERROR, FORMAT_ERROR, ERROR_CODE
+from ct.extensions import r2_client, BUCKET_NAME, PUBLIC_DOMAIN, db
+from ct.models import User
+# 响应结构
+from ct.vo import ApiResponse
 
-from flask_jwt_extended import get_jwt_identity,create_access_token,create_refresh_token
 
-
-def get_all_posts()->tuple[ApiResponse,int]:
-    result:list[PostResponse] = []
-    stmt = select(Post)
-    data: list[Post] = db.session.execute(stmt).scalars().all()
-    for i in range(len(data)):
-        user = data[i].user
-        result.append(PostResponse(
-            title=data[i].title,
-            content=data[i].content,
-            create_at=data[i].create_at,
-            username=user.username,
-            avatar=user.avatar
-        ))
-
-    return ApiResponse(code=SUCCESS_CODE,data=result).model_dump(),200
-
-def upload_to_cf(req: Request) -> tuple[ApiResponse,int]:
+def upload_to_cf(req: Request) -> tuple[ApiResponse, int]:
     """ (上传返回的路径信息, message, 状态码) """
     if 'avatar' not in req.files:
         resp = ApiResponse(
@@ -40,7 +22,7 @@ def upload_to_cf(req: Request) -> tuple[ApiResponse,int]:
             message='未提供文件'
         )
         return resp.model_dump(), 400
-    
+
     file = req.files['avatar']
     if file.filename == '':
         resp = ApiResponse(
@@ -50,7 +32,7 @@ def upload_to_cf(req: Request) -> tuple[ApiResponse,int]:
         )
         return resp.model_dump(), 400
 
-    ext = file.filename.rsplit('.',1)[-1] if '.' in file.filename else 'png'
+    ext = file.filename.rsplit('.', 1)[-1] if '.' in file.filename else 'png'
     filename = f'images/{uuid.uuid4().hex}.{ext}'
 
     try:
@@ -65,10 +47,10 @@ def upload_to_cf(req: Request) -> tuple[ApiResponse,int]:
             }
         )
         from ct.utils import image_process_and_upload
-        thumbnail_url = image_process_and_upload(raw_bytes,content_type,filename)
+        thumbnail_url = image_process_and_upload(raw_bytes, content_type, filename)
         image_url = f'{PUBLIC_DOMAIN}/{filename}'
 
-        resp = ApiResponse[dict[str,str]](
+        resp = ApiResponse[dict[str, str]](
             code=SUCCESS_CODE,
             data={
                 'thumbnail_url': thumbnail_url,
@@ -77,7 +59,7 @@ def upload_to_cf(req: Request) -> tuple[ApiResponse,int]:
             },
             message='上传成功'
         )
-        return resp.model_dump(),200
+        return resp.model_dump(), 200
 
     except Exception as e:
         resp = ApiResponse(
@@ -85,32 +67,7 @@ def upload_to_cf(req: Request) -> tuple[ApiResponse,int]:
             data=None,
             message=str(e)
         )
-        return resp.model_dump(),500
-
-def publish_post(req: Request) -> tuple[ApiResponse,int]:
-    # 入参验证
-    try:
-        postPublish = PostPublishBO(**req.get_json())
-    except ValueError as e:
-        resp = ApiResponse(
-            code=ERROR_CODE,
-            message=str(e)
-        )
-        return resp.model_dump(), 443
-
-    p = Post(**postPublish.model_dump())
-
-    try:
-        with db.session.begin():
-            db.session.add(p)
-    except Exception as e:
-        print(f'保存失败: {str(e)}')
-
-    resp = ApiResponse(
-        code=SUCCESS_CODE,
-        data=None
-    )
-    return resp.model_dump(),200
+        return resp.model_dump(), 500
 
 def registry_user(req: Request) -> tuple[ApiResponse,int]:
     # 验证参数

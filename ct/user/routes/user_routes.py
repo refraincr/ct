@@ -1,30 +1,19 @@
 from flask import request,Blueprint
 
-from ct.services import (get_all_posts,
-                         upload_to_cf,
-                         publish_post,
-                         registry_user,
+from ct.services import (registry_user,
                          login_user,
                          refresh_token,
-                         test_token)
+                         test_token,
+                         upload_to_cf)
 
 from flask_jwt_extended import jwt_required
 
 
-bp = Blueprint('main',__name__)
-
-@bp.get('/posts')
-def posts():
-    return get_all_posts()
+bp = Blueprint('user',__name__)
 
 @bp.post('/upload')
 def upload():
     return upload_to_cf(request)
-
-@bp.post('/publish')
-def publish():
-    return publish_post(request)
-
 
 @bp.post('/registry')
 def registry():
