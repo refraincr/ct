@@ -34,10 +34,10 @@ def create_app(config_name: str | None = None)->Flask:
 
 
 if __name__ == '__main__':
-    app = create_app('development')
-    app.run(
-        app.config['HOST'],
-        app.config['PORT'],
-        app.config['DEBUG'],
-        use_reloader = app.config['USE_RELOADER'],
+    flask_app = create_app('development')
+    flask_app.run(
+        flask_app.config['HOST'],
+        flask_app.config['PORT'],
+        flask_app.config['DEBUG'],
+        use_reloader = flask_app.config['USE_RELOADER'],
     )

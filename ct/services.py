@@ -1,5 +1,5 @@
 from ct.models import User,Post
-from datetime import datetime
+from sqlalchemy import select
 from flask.wrappers import Request
 import uuid
 from ct.extensions import r2_client,BUCKET_NAME,PUBLIC_DOMAIN,db
@@ -13,31 +13,22 @@ from ct.bo import PostPublishBO,RegistryFormBO,LoginBO
 
 from flask_jwt_extended import get_jwt_identity,create_access_token,create_refresh_token
 
-posts_data = [
-    {
-        'title': '清灰换硅脂真有用',
-        'content':'以玩三角洲为例：清灰换硅脂前温度最高92摄氏度帧率最高100帧，清灰换硅脂后温度最高67摄氏度帧率最高200帧',
-        'user_id': 1,
-        'create_at': datetime.now()
-    },
-    {
-        'title': '升级硬件啦',
-        'content': '加装了 8G 4800mt/s 的内存条和512G的2.5寸固态硬盘（实际上只有480g左右）,终于可以下得了三角洲了...',
-        'user_id': 1,
-        'create_at': datetime.now()
-    }
-]
 
 def get_all_posts()->tuple[ApiResponse,int]:
-    mock_data = []
-    for i in range(0,len(posts_data)):
-        mock_data.append(PostResponse(
-            title=posts_data[i]['title'],
-            content=posts_data[i]['content'],
-            user_id=posts_data[i]['user_id'],
-            create_at=posts_data[i]['create_at']
+    result:list[PostResponse] = []
+    stmt = select(Post)
+    data: list[Post] = db.session.execute(stmt).scalars().all()
+    for i in range(len(data)):
+        user = data[i].user
+        result.append(PostResponse(
+            title=data[i].title,
+            content=data[i].content,
+            create_at=data[i].create_at,
+            username=user.username,
+            avatar=user.avatar
         ))
-    return ApiResponse(code=SUCCESS_CODE,data=mock_data).model_dump(),200
+
+    return ApiResponse(code=SUCCESS_CODE,data=result).model_dump(),200
 
 def upload_to_cf(req: Request) -> tuple[ApiResponse,int]:
     """ (上传返回的路径信息, message, 状态码) """

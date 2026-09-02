@@ -7,3 +7,5 @@ uv.lock
 *.ipr
 
 .vscode/
+
+test/

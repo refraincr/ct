@@ -4,7 +4,8 @@ from datetime import datetime
 class PostResponse(BaseModel):
     title: str
     content: str
-    user_id: int
+    username: str
+    avatar: str
     create_at: datetime
 
     class Config:
