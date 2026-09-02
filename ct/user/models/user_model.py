@@ -2,7 +2,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped,mapped_column,relationship
 from ct.extensions import db
 import bcrypt
-from ct.post.models.post_model import Post
+
 
 class User(db.Model):
     __tablename__='users'

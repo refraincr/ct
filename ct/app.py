@@ -23,12 +23,15 @@ def create_app(config_name: str | None = None)->Flask:
 
     # 导入模型，确保它们被注册到 db.Model 的 metadata 里
     # Flask-Migrate生成迁移脚本时才能检测到这些
-    from ct.models import User,Post
+    from ct.user.models.user_model import User
+    from ct.post.models.post_model import Post
 
     # 导入蓝图
-    from ct.routes import bp as main_bp
+    from ct.user.routes.user_routes import bp as user_bp
+    from ct.post.routes.post_routes import bp as post_bp
 
-    app.register_blueprint(main_bp)
+    app.register_blueprint(user_bp)
+    app.register_blueprint(post_bp)
 
     return app
 

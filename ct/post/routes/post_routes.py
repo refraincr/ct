@@ -1,6 +1,6 @@
 from flask import request,Blueprint
 
-from ct.services import (get_all_posts,
+from ct.post.services.post_services import (get_all_posts,
                          publish_post)
 
 from flask_jwt_extended import jwt_required

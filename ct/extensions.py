@@ -41,7 +41,7 @@ def user_identity_loader(user):
 @jwt.user_lookup_loader
 def user_lookup_loader(_jwt_header,jwt_data):
     """校验 token 后查出 User 对象赋值给 current_user"""
-    from ct.models import User
+    from ct.user.models.user_model import User
     # 延时导入，防止循环导入
     user_id = int(jwt_data['sub'])
     return User.get_user_by_id(user_id)

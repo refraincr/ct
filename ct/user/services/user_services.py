@@ -5,10 +5,10 @@ from flask.wrappers import Request
 from flask_jwt_extended import get_jwt_identity, create_access_token, create_refresh_token
 
 # 入参
-from ct.bo import RegistryFormBO, LoginBO
+from ct.user.BO.user_bo import RegistryFormBO, LoginBO
 from ct.constants import SUCCESS_CODE, EMPTY_ERROR, FORMAT_ERROR, ERROR_CODE
 from ct.extensions import r2_client, BUCKET_NAME, PUBLIC_DOMAIN, db
-from ct.models import User
+from ct.user.models.user_model import User
 # 响应结构
 from ct.vo import ApiResponse
 
@@ -140,7 +140,7 @@ def login_user(req: Request) -> tuple[ApiResponse,int]:
 
 def refresh_token() -> tuple[ApiResponse,int]:
     user_id = int(get_jwt_identity())
-    from ct.models import User
+    from ct.user.models.user_model import User
     user = User.get_user_by_id(user_id)
     access_token = create_access_token(user)
 

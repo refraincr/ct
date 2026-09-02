@@ -1,6 +1,6 @@
 from flask import request,Blueprint
 
-from ct.services import (registry_user,
+from ct.user.services.user_services import (registry_user,
                          login_user,
                          refresh_token,
                          test_token,

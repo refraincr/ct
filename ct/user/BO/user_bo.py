@@ -5,10 +5,6 @@
 from pydantic import BaseModel,Field,EmailStr,field_validator
 from typing import Optional
 
-class PostPublishBO(BaseModel):
-    title: str = Field(min_length=1,max_length=20)
-    content: str = Field(min_length=1)
-    user_id: int = Field(gt=0)
 
 class RegistryFormBO(BaseModel):
     username: str = Field(min_length=1,max_length=20)

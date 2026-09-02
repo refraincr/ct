@@ -3,8 +3,6 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped,mapped_column,relationship
 from ct.extensions import db
 
-from ct.models import User
-
 
 class Post(db.Model):
     __tablename__='post'
