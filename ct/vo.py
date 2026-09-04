@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 class PostResponse(BaseModel):
+    id: int
     title: str
     content: str
     username: str

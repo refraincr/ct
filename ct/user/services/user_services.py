@@ -148,3 +148,15 @@ def refresh_token() -> tuple[ApiResponse,int]:
 
 def test_token() -> tuple[ApiResponse,int]:
     return ApiResponse(code=SUCCESS_CODE).model_dump(),200
+
+def user_info_service() -> tuple[ApiResponse,int]:
+    user_id = int(get_jwt_identity())
+    from ct.user.models.user_model import User
+    user = User.get_user_by_id(user_id)
+    user_info = {
+        'username': user.username,
+        'id': user.id,
+        'avatar': user.avatar,
+        'email': user.email
+    }
+    return ApiResponse(code=SUCCESS_CODE,data=user_info).model_dump(),200
