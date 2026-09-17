@@ -37,4 +37,4 @@ def me():
 @bp.get('/user/info')
 @jwt_required()
 def user_info():
-    return user_info_service(request)
+    return user_info_service()
