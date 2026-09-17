@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import Callable
+import re
 
 # 测试数据
 request = {
@@ -13,10 +13,13 @@ def login_required():
         headers = request['headers']
         if not headers:
             raise ValueError('请求没有headers')
+
         bearer_token = headers['Authorization']
-        if not bearer_token:
+        if not bearer_token and not bearer_token.startswith('Bearer'):
             raise ValueError('未携带 Bearer <token>')
-        if bearer_token.split(' ',1)[-1] != 'ooooooken':
+
+        bearer_token = re.sub(r'\s+', ' ', bearer_token)
+        if bearer_token.split(' ',1)[-1] != 'tooooooken':
             raise ValueError('无效的 token')
         @wraps(fn)
         def wrapper():
